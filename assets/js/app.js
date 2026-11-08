@@ -22,7 +22,9 @@ async function getProfile(force = false) {
 }
 
 function isApproved(p) { return !!p && p.status === 'approved'; }
-function isAdmin(p) { return !!p && p.role === 'admin' && p.status === 'approved'; }
+function isManager(p) { return !!p && (p.role === 'owner' || p.role === 'admin') && p.status === 'approved'; }
+function isOwner(p) { return !!p && p.role === 'owner' && p.status === 'approved'; }
+function isAdmin(p) { return isManager(p); }
 
 function esc(s) {
   return String(s == null ? '' : s)

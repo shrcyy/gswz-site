@@ -137,8 +137,8 @@ document.getElementById('authForm').addEventListener('submit', async (ev) => {
         authNote.textContent = '注册成功！请到邮箱查收确认邮件，点击链接激活后再登录。';
       } else {
         const p = await getProfile(true);
-        if (p && p.role === 'admin') {
-          toast('注册成功，你已成为管理员，可直接上传与管理');
+        if (p && (p.role === 'admin' || p.role === 'owner')) {
+          toast('注册成功，你已成为初始管理员（全站唯一，可转移给管理员）');
           setTimeout(() => location.href = 'studio.html', 700);
         } else {
           toast('注册成功，等待管理员审核', 'ok');

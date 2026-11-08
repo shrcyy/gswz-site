@@ -227,6 +227,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .badge.public { background: #e8f1ec; color: #2e7d5b; }
 .badge.internal { background: #f3ece2; color: #8a5a1e; }
 .badge.admin { background: #f1e7e7; color: var(--red); }
+.badge.owner { background: #f6efdc; color: #8a5a1f; border: 1px solid rgba(184, 145, 47, .35); }
 .badge.pending { background: #f6efdc; color: var(--warn); }
 .badge.ok { background: #e8f1ec; color: var(--ok); }
 .badge.date { background: transparent; color: var(--ink-3); padding-left: 0; }
