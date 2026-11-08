@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>成员登录 · 工商自委</title>
+<meta name="description" content="工商自委成员登录与注册：邮箱账号密码登录，登录后可访问内部资料、上传归档文件。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='8'%20fill='%2316324f'/%3E%3Ctext%20x='32'%20y='46'%20font-size='30'%20text-anchor='middle'%20font-family='serif'%20fill='%23d8b869'%3E%E8%87%AA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">自</span>
+      <span class="brand-text">
+        <strong>工商自委</strong>
+        <small>辽宁工程技术大学 · 工商管理学院</small>
+      </span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="archive.html">资料库</a>
+      <a href="news.html">通知公告</a>
+      <a href="gallery.html">活动照片</a>
+      <a href="manual.html">履职手册</a>
+    </nav>
+    <div class="header-actions" id="authArea"></div>
+  </div>
+</header>
+
+<main>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h2 id="authTitle">成员登录</h2>
+      <p class="sub">使用邮箱账号进入工作台，管理资料与内容</p>
+
+      <div class="tabs">
+        <button id="tabLogin" class="active" type="button">登录</button>
+        <button id="tabSignup" type="button">注册</button>
+      </div>
+
+      <form id="authForm">
+        <div class="field">
+          <label for="email">邮箱</label>
+          <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="password">密码</label>
+          <input type="password" id="password" placeholder="至少 6 位" required minlength="6" autocomplete="current-password">
+        </div>
+        <div class="field" id="nameField" style="display:none;">
+          <label for="displayName">姓名（选填）</label>
+          <input type="text" id="displayName" placeholder="如：张三，办公室">
+        </div>
+        <button class="btn btn-primary btn-block" id="submitBtn" type="submit">登录</button>
+      </form>
+
+      <div class="form-note" id="authNote">
+        成员注册后需经管理员审核才能查看内部资料、上传文件。首位注册的账号将自动成为管理员。
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom" style="border-top:none;margin-top:0;padding-top:0;">
+      <span>© 2026 辽宁工程技术大学工商管理学院大学生自律委员会</span>
+      <span><a href="index.html" style="color:rgba(255,255,255,.5)">返回首页</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+let mode = 'login';
+
+const tabLogin = document.getElementById('tabLogin');
+const tabSignup = document.getElementById('tabSignup');
+const nameField = document.getElementById('nameField');
+const submitBtn = document.getElementById('submitBtn');
+const authTitle = document.getElementById('authTitle');
+const authNote = document.getElementById('authNote');
+
+function setMode(m) {
+  mode = m;
+  const isLogin = m === 'login';
+  tabLogin.classList.toggle('active', isLogin);
+  tabSignup.classList.toggle('active', !isLogin);
+  nameField.style.display = isLogin ? 'none' : 'block';
+  submitBtn.textContent = isLogin ? '登录' : '注册';
+  authTitle.textContent = isLogin ? '成员登录' : '成员注册';
+  document.getElementById('password').autocomplete = isLogin ? 'current-password' : 'new-password';
+  authNote.textContent = isLogin
+    ? '成员注册后需经管理员审核才能查看内部资料、上传文件。'
+    : '注册后一般需管理员审核；首位注册的账号将自动成为管理员并直接通过。';
+}
+
+tabLogin.addEventListener('click', () => setMode('login'));
+tabSignup.addEventListener('click', () => setMode('signup'));
+
+document.getElementById('authForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const displayName = document.getElementById('displayName').value.trim();
+  submitBtn.disabled = true;
+  submitBtn.textContent = '处理中…';
+
+  try {
+    if (mode === 'login') {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(translate(error.message));
+      const p = await getProfile(true);
+      if (!p || p.status === 'pending') {
+        toast('已登录，但账号待管理员审核，暂无法访问内部资料', 'warn');
+        setTimeout(() => location.href = 'index.html', 900);
+      } else if (p.status === 'rejected') {
+        toast('账号未通过审核，请联系管理员', 'err');
+        await sb.auth.signOut();
+      } else {
+        toast('登录成功');
+        setTimeout(() => location.href = 'studio.html', 500);
+      }
+    } else {
+      const { data, error } = await sb.auth.signUp({
+        email, password,
+        options: { data: { display_name: displayName || email.split('@')[0] } }
+      });
+      if (error) throw new Error(translate(error.message));
+      if (!data.session) {
+        toast('注册成功，请前往邮箱点击确认链接后再登录', 'ok');
+        authNote.textContent = '注册成功！请到邮箱查收确认邮件，点击链接激活后再登录。';
+      } else {
+        const p = await getProfile(true);
+        if (p && p.role === 'admin') {
+          toast('注册成功，你已成为管理员，可直接上传与管理');
+          setTimeout(() => location.href = 'studio.html', 700);
+        } else {
+          toast('注册成功，等待管理员审核', 'ok');
+          setTimeout(() => location.href = 'index.html', 900);
+        }
+      }
+    }
+  } catch (e) {
+    toast(e.message || '操作失败', 'err');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = mode === 'login' ? '登录' : '注册';
+  }
+});
+
+function translate(msg) {
+  const m = (msg || '').toLowerCase();
+  if (m.includes('invalid login credentials')) return '邮箱或密码不正确';
+  if (m.includes('user already registered')) return '该邮箱已注册，请直接登录';
+  if (m.includes('password should be at least')) return '密码长度不足 6 位';
+  if (m.includes('email not confirmed')) return '邮箱尚未确认，请先点击邮件里的确认链接';
+  if (m.includes('rate limit')) return '操作过于频繁，请稍后再试';
+  return msg;
+}
+
+(async () => {
+  const p = await getProfile(true);
+  if (p && p.status === 'approved') location.href = 'studio.html';
+})();
+</script>
+</body>
+</html>

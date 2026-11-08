@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>组织资料库 · 工商自委</title>
+<meta name="description" content="工商自委组织资料库：制度文件、模板表格、会议纪要、活动资料、考核台账，按学年、部门、类型归档。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='8'%20fill='%2316324f'/%3E%3Ctext%20x='32'%20y='46'%20font-size='30'%20text-anchor='middle'%20font-family='serif'%20fill='%23d8b869'%3E%E8%87%AA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">自</span>
+      <span class="brand-text">
+        <strong>工商自委</strong>
+        <small>辽宁工程技术大学 · 工商管理学院</small>
+      </span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="archive.html" class="active">资料库</a>
+      <a href="news.html">通知公告</a>
+      <a href="gallery.html">活动照片</a>
+      <a href="manual.html">履职手册</a>
+    </nav>
+    <div class="header-actions" id="authArea"></div>
+  </div>
+</header>
+
+<main>
+  <section class="section" style="padding-top:52px;padding-bottom:26px;">
+    <div class="container">
+      <div class="section-head" style="margin-bottom:22px;">
+        <div class="eyebrow">组织资料库</div>
+        <h2>按学年归档，一届传给一届</h2>
+        <p>制度文件、模板表格、会议纪要、活动资料、考核台账。公开资料任何人可查阅下载；内部文件仅登录成员可见。</p>
+      </div>
+      <div id="memberTip" class="form-note" style="margin-top:0;margin-bottom:18px;display:none;"></div>
+
+      <div class="filter-bar">
+        <div class="field">
+          <label for="fYear">学年</label>
+          <select id="fYear"><option value="">全部学年</option></select>
+        </div>
+        <div class="field">
+          <label for="fDept">部门</label>
+          <select id="fDept"><option value="">全部部门</option></select>
+        </div>
+        <div class="field">
+          <label for="fCat">类型</label>
+          <select id="fCat"><option value="">全部类型</option></select>
+        </div>
+        <div class="field search-field">
+          <label for="fKeyword">关键词</label>
+          <input type="text" id="fKeyword" placeholder="搜索标题、说明、文件名">
+        </div>
+        <div class="field">
+          <button class="btn btn-primary btn-sm" id="fReset" type="button" style="width:100%;">重置</button>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:13px;color:var(--ink-3);" id="matCount"></span>
+        <a class="btn btn-outline btn-sm" href="studio.html" id="uploadEntry" style="display:none;">上传资料</a>
+      </div>
+
+      <div id="materialList" class="material-list">
+        <div class="empty"><h3>正在加载…</h3></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">工商自委<small>资料库</small></div>
+        <p>资料按学年、部门、类型三级归档，换届交接时无需另行整理。</p>
+      </div>
+      <div>
+        <h4>导航</h4>
+        <div class="footer-links">
+          <a href="index.html">首页</a>
+          <a href="news.html">通知公告</a>
+          <a href="gallery.html">活动照片</a>
+          <a href="manual.html">履职手册</a>
+        </div>
+      </div>
+      <div>
+        <h4>说明</h4>
+        <p>内部资料仅登录成员可见。如需账号，请联系办公室管理员。</p>
+      </div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 辽宁工程技术大学工商管理学院大学生自律委员会</span></div>
+  </div>
+</footer>
+
+<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+let allMats = [];
+let me = null;
+
+const fYear = document.getElementById('fYear');
+const fDept = document.getElementById('fDept');
+const fCat = document.getElementById('fCat');
+const fKeyword = document.getElementById('fKeyword');
+const listBox = document.getElementById('materialList');
+const countBox = document.getElementById('matCount');
+
+SITE.years.slice().reverse().forEach(y => {
+  const o = document.createElement('option'); o.value = y; o.textContent = y; fYear.appendChild(o);
+});
+SITE.departments.forEach(d => {
+  const o = document.createElement('option'); o.value = d; o.textContent = d; fDept.appendChild(o);
+});
+SITE.categories.forEach(c => {
+  const o = document.createElement('option'); o.value = c; o.textContent = c; fCat.appendChild(o);
+});
+
+function iconOf(name, mime) {
+  const ext = (name || '').split('.').pop().toLowerCase();
+  if (ext === 'pdf') return 'PDF';
+  if (['doc', 'docx'].includes(ext)) return 'DOC';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'XLS';
+  if (['ppt', 'pptx'].includes(ext)) return 'PPT';
+  if (['zip', 'rar', '7z'].includes(ext)) return 'ZIP';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'IMG';
+  return (mime || '').includes('pdf') ? 'PDF' : 'FILE';
+}
+
+function render() {
+  const y = fYear.value, d = fDept.value, c = fCat.value, k = fKeyword.value.trim().toLowerCase();
+  const rows = allMats.filter(m =>
+    (!y || m.academic_year === y) &&
+    (!d || m.department === d) &&
+    (!c || m.category === c) &&
+    (!k || [m.title, m.description, m.file_name].join(' ').toLowerCase().includes(k))
+  );
+  countBox.textContent = rows.length ? `共 ${rows.length} 份资料` : '';
+  if (!rows.length) {
+    listBox.innerHTML = `<div class="empty"><h3>没有符合条件的资料</h3><p>换个筛选条件试试，或联系管理员确认资料是否已上传。</p></div>`;
+    return;
+  }
+  listBox.innerHTML = rows.map(m => {
+    const locked = m.visibility === 'internal' && !(me && me.status === 'approved');
+    return `<div class="material-row">
+      <div class="mat-icon">${iconOf(m.file_name, m.mime_type)}</div>
+      <div class="mat-main">
+        <div class="mat-title">${esc(m.title)}</div>
+        <div class="mat-meta">
+          <span class="badge">${esc(m.academic_year)}</span>
+          <span class="badge">${esc(m.department)}</span>
+          <span class="badge">${esc(m.category)}</span>
+          <span class="badge ${m.visibility}">${m.visibility === 'public' ? '公开' : '内部'}</span>
+          <span>${esc(fmtSize(m.file_size))}</span>
+          <span>${fmtDate(m.created_at)}</span>
+        </div>
+        ${m.description ? `<div style="font-size:13px;color:var(--ink-3);margin-top:5px;">${esc(m.description)}</div>` : ''}
+      </div>
+      <div class="mat-actions">
+        ${locked
+          ? `<span class="mat-lock">登录后查看</span><a class="btn btn-outline btn-sm" href="login.html">登录</a>`
+          : `<button class="btn btn-outline btn-sm" data-id="${m.id}">下载</button>`}
+      </div>
+    </div>`;
+  }).join('');
+  listBox.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = allMats.find(x => String(x.id) === btn.dataset.id);
+      if (m) downloadMaterial(m);
+    });
+  });
+}
+
+[fYear, fDept, fCat].forEach(el => el.addEventListener('change', render));
+fKeyword.addEventListener('input', render);
+document.getElementById('fReset').addEventListener('click', () => {
+  fYear.value = ''; fDept.value = ''; fCat.value = ''; fKeyword.value = ''; render();
+});
+
+(async () => {
+  me = await getProfile(true);
+  const tip = document.getElementById('memberTip');
+  if (!me) {
+    tip.style.display = 'block';
+    tip.innerHTML = '未登录状态下只能查看公开资料。内部文件（考核台账、会议纪要、内部模板等）需 <a href="login.html" style="color:var(--navy);text-decoration:underline;">登录成员账号</a> 后可见。';
+  } else if (me.status === 'pending') {
+    tip.style.display = 'block';
+    tip.textContent = '你的账号正在等待管理员审核，审核通过后即可查看内部资料并上传文件。';
+  } else if (me.status === 'rejected') {
+    tip.style.display = 'block';
+    tip.textContent = '你的账号未通过审核，如有疑问请联系办公室管理员。';
+  }
+  if (me && me.status === 'approved') {
+    document.getElementById('uploadEntry').style.display = 'inline-flex';
+  }
+
+  listBox.innerHTML = '<div class="empty"><h3>正在加载…</h3></div>';
+  try {
+    const { data, error } = await sb.from('materials')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    allMats = data || [];
+    render();
+  } catch (e) {
+    listBox.innerHTML = `<div class="empty"><h3>资料库暂时不可用</h3><p>${esc(e.message || '请稍后刷新重试')}</p></div>`;
+  }
+})();
+</script>
+</body>
+</html>

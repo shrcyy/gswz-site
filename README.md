@@ -1,73 +1,73 @@
-# 工商管理学院大学生自律委员会 官方网站
+# 工商自委网站系统（第二版）
 
-辽宁工程技术大学工商管理学院大学生自律委员会（工商自委）官方网站，托管于 GitHub Pages，零服务器成本，面向全网公开（内容已按脱敏要求处理）。
+辽宁工程技术大学工商管理学院大学生自律委员会官网与内部资料库。
 
-## 站点地址
+## 这个站点解决什么
 
-- 网站：https://shrcyy.github.io/gswz-site/
-- 代码仓库：https://github.com/shrcyy/gswz-site
+1. **对外展示**：首页、通知公告、活动照片面向访客，讲清工商自委是什么、做过什么。
+2. **内部归档**：成员用邮箱账号登录后，把制度文件、模板、纪要、照片按「学年 — 部门 — 类型」上传，一届届沉淀。
+3. **手册降级**：履职手册不再是站点中心，只作为资料库中的一份普通资料，保留在线阅读入口。
 
-## 栏目结构
+## 技术结构
 
-| 页面 | 说明 |
-| --- | --- |
-| index.html | 组织介绍：组织简介、四部门架构、干部配置、改革发展历程 |
-| manual.html | 履职手册在线阅读（12 章导航 + 全文搜索）+ PDF/Word 下载 |
-| news.html | 通知动态：公告、工作简报留档 |
-| gallery.html | 活动相册：按品牌活动分类，照片陆续补充中 |
+- 前端：纯静态 HTML + CSS + 原生 JS，`assets/js/config.js` 集中配置。
+- 后端：Supabase（Postgres + Storage + Auth）。
+- 部署：GitHub Pages（`shrcyy/gswz-site`，分支 `main`）。
 
-## 目录结构
+## 目录
 
 ```
-gswz-website/
-├── index.html          组织介绍
-├── manual.html         履职手册在线阅读
-├── news.html           通知动态
-├── gallery.html        活动相册
-└── assets/
-    ├── css/style.css   全局样式（正式庄重风设计体系）
-    ├── js/main.js      交互脚本（导航、手册渲染、搜索、分页）
-    ├── js/manual-data.js  手册全文数据（由 docx 生成，勿手改）
-    └── files/          手册 PDF / Word 下载文件
+index.html        首页（组织展示）
+login.html        登录 / 注册
+archive.html      资料库（三级筛选 + 公开/内部区分）
+news.html         通知公告
+gallery.html      活动照片
+studio.html       成员工作台（上传资料 / 发通知 / 传照片 / 我的上传）
+admin.html        管理后台（成员审核 + 内容管理）
+manual.html       履职手册在线阅读
+assets/css/style.css
+assets/js/config.js     Supabase 地址、密钥、部门/类型/学年常量
+assets/js/app.js        登录态、资料下载、格式化与提示
+assets/js/manual-data.js 手册正文数据
+assets/files/          手册 PDF / Word
+supabase/setup.sql     数据库初始化脚本（可重复执行）
 ```
 
-## 更新指南（由办公室维护）
+## 数据库
 
-### 1. 更新通知动态
+`supabase/setup.sql` 建四张表、两个存储桶、RLS 策略、触发器：
 
-编辑 `news.html`，在 `.news-list` 中按现有 `<article class="news-item">` 结构新增条目即可。发布时间与落款按公文格式填写。
+| 对象 | 用途 |
+|---|---|
+| `profiles` | 成员档案，含 `role`（member/admin）与 `status`（pending/approved/rejected） |
+| `materials` | 资料，`academic_year` / `department` / `category` / `visibility` |
+| `notices` | 通知，支持置顶与公开/内部 |
+| `photos` | 活动照片，按 `activity` 分组 |
+| `gswz-public` | 公开存储桶，匿名可读 |
+| `gswz-internal` | 私有存储桶，仅成员可读（签名链接） |
 
-### 2. 补充活动照片
+规则：
 
-1. 照片统一命名：`日期-活动名-序号.jpg`（如 `20260910-安全知识竞赛-01.jpg`）；
-2. 将照片放入 `assets/img/` 目录（新照片可先建子目录，如 `assets/img/安全知识竞赛/`）；
-3. 在 `gallery.html` 对应相册卡片中，将占位图替换为 `<img src="assets/img/...">` 图片墙，并移除"待补充"角标；
-4. 遵守发布纪律：人物出镜需征得同意，不打码的丑照不用，不披露同学姓名、学号、寝室号等个人信息。
+- 首个注册的账号自动成为管理员并直接通过审核；之后注册的人都是成员、待审核。
+- 上传即生效，没有审核队列；管理员只负责账号准入与内容清理。
+- 成员不能用 API 把自己改成管理员（`protect_profile_fields` 触发器拦截）。
 
-### 3. 更新履职手册（新学年修订时）
+## 开通步骤
 
-手册正文由 docx 生成 `manual-data.js`，步骤：
+1. 打开 Supabase 项目 SQL Editor，整段执行 `supabase/setup.sql`。
+2. 在 Authentication → Providers 确认 Email 已启用；如需注册后直接可用，可关闭「Confirm email」。
+3. 打开网站，注册第一个账号 —— 它就是管理员。
+4. 之后辅导员/部长注册，由管理员在 `admin.html` 里点「通过」。
 
-1. 用新 docx 替换 `assets/files/学生干部履职指导手册（正式版）.docx`，并另存/转换为同名 PDF；
-2. 用 Word 打开 docx → 另存为 PDF，替换 `assets/files/` 下的 PDF；
-3. 重新生成 `manual-data.js`：将 docx 导出为 Markdown（章节标题用 `#`/`##`/`###`，表格用管道格式），放入站点仓库根目录 `_manual_source.md`，然后按 `build_manual_data.py` 的逻辑重新生成数据文件（脚本存于交接材料中，或联系网站维护负责人）；
-4. 同步更新 `news.html` 发布新版施行公告。
+## 维护要点
 
-### 4. 部署方式
+- 新增学年：改 `assets/js/config.js` 里 `SITE.years`，或在 `currentAcademicYear()` 中让它按 9 月自动切换。
+- 新增部门或资料类型：改 `SITE.departments` / `SITE.categories`，无需动数据库。
+- 换 Supabase 项目：只改 `config.js` 里的 `SUPABASE_URL` 与 `SUPABASE_ANON_KEY`，再执行一次 `setup.sql`。
+- `anon` key 是公开密钥，可以出现在前端；`service_role` key 绝不能写进前端。
 
-修改本地文件后：
+## 已知边界
 
-```bash
-git add -A
-git commit -m "更新说明"
-git push origin main
-```
-
-推送后 GitHub Actions 自动构建部署，约 1 分钟内生效。
-
-## 维护约定
-
-- 网站由工商自委办公室归口维护，主席团把关重要内容；
-- 内容一律脱敏：不发布同学姓名、学号、联系方式、寝室号等个人信息；
-- 对外发布口径以学院文件为准；
-- 换届时移交仓库管理权限与本地工作目录，保证组织记忆延续。
+- 单文件上限 50MB（Supabase 免费额度默认值），超出需先压缩。
+- 照片墙的签名链接有效期 1 小时，过期刷新页面即可重新签发。
+- 站点是静态托管 + 云端数据库，不涉及服务器运维；如后续要自定义域名，在仓库 Settings → Pages 里绑定。

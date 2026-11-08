@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>成员工作台 · 工商自委</title>
+<meta name="description" content="工商自委成员工作台：上传资料、发布通知、上传活动照片，按学年归档。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='8'%20fill='%2316324f'/%3E%3Ctext%20x='32'%20y='46'%20font-size='30'%20text-anchor='middle'%20font-family='serif'%20fill='%23d8b869'%3E%E8%87%AA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">自</span>
+      <span class="brand-text">
+        <strong>工商自委</strong>
+        <small>辽宁工程技术大学 · 工商管理学院</small>
+      </span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="archive.html">资料库</a>
+      <a href="news.html">通知公告</a>
+      <a href="gallery.html">活动照片</a>
+      <a href="manual.html">履职手册</a>
+    </nav>
+    <div class="header-actions" id="authArea"></div>
+  </div>
+</header>
+
+<main>
+  <section class="studio-wrap">
+    <div class="container">
+      <div class="section-head" style="margin-bottom:26px;">
+        <div class="eyebrow">成员工作台</div>
+        <h2>上传即归档，一届传一届</h2>
+        <p>上传的资料按「学年 — 部门 — 类型」自动归档。公开内容任何人可见，内部内容仅登录成员可见。</p>
+      </div>
+
+      <div id="gateBox" style="display:none;"></div>
+
+      <div id="studioMain" style="display:none;">
+        <div class="studio-tabs">
+          <button type="button" data-tab="material" class="active">上传资料</button>
+          <button type="button" data-tab="notice">发布通知</button>
+          <button type="button" data-tab="photo">上传照片</button>
+        </div>
+
+        <!-- 上传资料 -->
+        <div class="panel" id="panelMaterial">
+          <form id="formMaterial">
+            <div class="form-grid">
+              <div class="field span-2">
+                <label for="mTitle">资料标题 *</label>
+                <input type="text" id="mTitle" required placeholder="如：2026—2027 学年第一学期寝室卫生检查安排">
+              </div>
+              <div class="field">
+                <label for="mYear">学年 *</label>
+                <select id="mYear" required></select>
+              </div>
+              <div class="field">
+                <label for="mDept">部门 *</label>
+                <select id="mDept" required></select>
+              </div>
+              <div class="field">
+                <label for="mCat">资料类型 *</label>
+                <select id="mCat" required></select>
+              </div>
+              <div class="field">
+                <label for="mVis">可见范围 *</label>
+                <select id="mVis" required>
+                  <option value="internal">内部 · 仅登录成员可见</option>
+                  <option value="public">公开 · 任何人可看</option>
+                </select>
+              </div>
+              <div class="field span-2">
+                <label for="mDesc">补充说明</label>
+                <input type="text" id="mDesc" placeholder="一句话说明用途，便于检索（选填）">
+              </div>
+              <div class="field span-2">
+                <label>选择文件 *</label>
+                <label class="file-drop" for="mFile">
+                  <div style="font-size:14px;color:var(--ink-2);">点击选择文件（PDF / Word / Excel / PPT / 图片 / 压缩包，单个不超过 50MB）</div>
+                  <div class="fname" id="mFileName">尚未选择文件</div>
+                  <input type="file" id="mFile" required>
+                </label>
+                <div class="progress" id="mProgress"><i></i></div>
+              </div>
+            </div>
+            <div style="margin-top:22px;display:flex;gap:12px;">
+              <button class="btn btn-primary" type="submit" id="mSubmit">上传并归档</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 发布通知 -->
+        <div class="panel" id="panelNotice" style="display:none;">
+          <form id="formNotice">
+            <div class="form-grid">
+              <div class="field span-2">
+                <label for="nTitle">通知标题 *</label>
+                <input type="text" id="nTitle" required placeholder="如：关于开展本学期寝室卫生专项检查的通知">
+              </div>
+              <div class="field span-2">
+                <label for="nBody">通知正文 *</label>
+                <textarea id="nBody" required placeholder="写清时间、地点、范围、要求与联系人。"></textarea>
+              </div>
+              <div class="field">
+                <label for="nVis">可见范围 *</label>
+                <select id="nVis" required>
+                  <option value="public">公开 · 任何人可看</option>
+                  <option value="internal">内部 · 仅登录成员可见</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="nPin">置顶</label>
+                <select id="nPin">
+                  <option value="false">不置顶</option>
+                  <option value="true">置顶显示</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:22px;">
+              <button class="btn btn-primary" type="submit" id="nSubmit">发布通知</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 上传照片 -->
+        <div class="panel" id="panelPhoto" style="display:none;">
+          <form id="formPhoto">
+            <div class="form-grid">
+              <div class="field">
+                <label for="pActivity">活动名称 *</label>
+                <input type="text" id="pActivity" required placeholder="如：寝室文化节">
+              </div>
+              <div class="field">
+                <label for="pDate">活动日期</label>
+                <input type="date" id="pDate">
+              </div>
+              <div class="field">
+                <label for="pVis">可见范围 *</label>
+                <select id="pVis" required>
+                  <option value="public">公开 · 任何人可看</option>
+                  <option value="internal">内部 · 仅登录成员可见</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="pCaption">照片说明</label>
+                <input type="text" id="pCaption" placeholder="如：开幕式现场（选填，统一套用到本批照片）">
+              </div>
+              <div class="field span-2">
+                <label>选择照片 *（可多选）</label>
+                <label class="file-drop" for="pFiles">
+                  <div style="font-size:14px;color:var(--ink-2);">点击选择照片（JPG / PNG / WEBP，单张不超过 50MB）</div>
+                  <div class="fname" id="pFileNames">尚未选择照片</div>
+                  <input type="file" id="pFiles" accept="image/*" multiple required>
+                </label>
+                <div class="progress" id="pProgress"><i></i></div>
+              </div>
+            </div>
+            <div style="margin-top:22px;">
+              <button class="btn btn-primary" type="submit" id="pSubmit">上传照片</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 我的上传 -->
+        <div class="section-head" style="margin:44px 0 16px;">
+          <h2 style="font-size:20px;">我的上传</h2>
+        </div>
+        <div id="myList"><div class="empty"><h3>加载中…</h3></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom" style="border-top:none;margin-top:0;padding-top:0;">
+      <span>© 2026 辽宁工程技术大学工商管理学院大学生自律委员会</span>
+      <span><a href="index.html" style="color:rgba(255,255,255,.5)">返回首页</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+let me = null;
+
+function safeName(name) {
+  return String(name || 'file')
+    .replace(/[\\/:*?"<>|]+/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(-120);
+}
+
+function bucketOfVis(vis) {
+  return vis === 'public' ? SITE.buckets.public : SITE.buckets.internal;
+}
+
+function setProgress(id, pct) {
+  const bar = document.getElementById(id);
+  if (!bar) return;
+  bar.style.display = pct == null ? 'none' : 'block';
+  if (pct != null) bar.querySelector('i').style.width = Math.min(100, Math.max(0, pct)) + '%';
+}
+
+// 初始化下拉
+SITE.years.slice().reverse().forEach(y => {
+  const o = document.createElement('option'); o.value = y; o.textContent = y; document.getElementById('mYear').appendChild(o);
+});
+document.getElementById('mYear').value = currentAcademicYear();
+SITE.departments.forEach(d => {
+  const o = document.createElement('option'); o.value = d; o.textContent = d; document.getElementById('mDept').appendChild(o);
+});
+SITE.categories.forEach(c => {
+  const o = document.createElement('option'); o.value = c; o.textContent = c; document.getElementById('mCat').appendChild(o);
+});
+
+// tab 切换
+document.querySelectorAll('.studio-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.studio-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('panelMaterial').style.display = tab === 'material' ? 'block' : 'none';
+    document.getElementById('panelNotice').style.display = tab === 'notice' ? 'block' : 'none';
+    document.getElementById('panelPhoto').style.display = tab === 'photo' ? 'block' : 'none';
+  });
+});
+
+// 文件选择回显
+document.getElementById('mFile').addEventListener('change', e => {
+  document.getElementById('mFileName').textContent = e.target.files[0] ? e.target.files[0].name : '尚未选择文件';
+});
+document.getElementById('pFiles').addEventListener('change', e => {
+  const fs = Array.from(e.target.files || []);
+  document.getElementById('pFileNames').textContent = fs.length ? fs.map(f => f.name).join('、') : '尚未选择照片';
+});
+
+// 上传资料
+document.getElementById('formMaterial').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const btn = document.getElementById('mSubmit');
+  const file = document.getElementById('mFile').files[0];
+  if (!file) return toast('请先选择文件', 'err');
+  if (file.size > 50 * 1024 * 1024) return toast('文件超过 50MB，请压缩后再上传', 'err');
+
+  const year = document.getElementById('mYear').value;
+  const dept = document.getElementById('mDept').value;
+  const cat = document.getElementById('mCat').value;
+  const vis = document.getElementById('mVis').value;
+  const title = document.getElementById('mTitle').value.trim();
+  const desc = document.getElementById('mDesc').value.trim();
+
+  btn.disabled = true; btn.textContent = '上传中…';
+  setProgress('mProgress', 30);
+  try {
+    const path = `materials/${year}/${dept}/${Date.now()}-${safeName(file.name)}`;
+    const bucket = bucketOfVis(vis);
+    const { error: upErr } = await sb.storage.from(bucket).upload(path, file, { cacheControl: '3600', upsert: false });
+    if (upErr) throw upErr;
+    setProgress('mProgress', 75);
+    const { error: insErr } = await sb.from('materials').insert({
+      title, description: desc, academic_year: year, department: dept, category: cat,
+      visibility: vis, file_path: path, file_name: file.name, file_size: file.size,
+      mime_type: file.type || '', uploader_id: me.id, uploader_email: me.email || ''
+    });
+    if (insErr) {
+      await sb.storage.from(bucket).remove([path]).catch(() => {});
+      throw insErr;
+    }
+    setProgress('mProgress', 100);
+    toast('资料已归档');
+    ev.target.reset();
+    document.getElementById('mFileName').textContent = '尚未选择文件';
+    document.getElementById('mYear').value = currentAcademicYear();
+    loadMine();
+  } catch (e) {
+    toast('上传失败：' + (e.message || e), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '上传并归档';
+    setTimeout(() => setProgress('mProgress', null), 600);
+  }
+});
+
+// 发布通知
+document.getElementById('formNotice').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const btn = document.getElementById('nSubmit');
+  btn.disabled = true; btn.textContent = '发布中…';
+  try {
+    const { error } = await sb.from('notices').insert({
+      title: document.getElementById('nTitle').value.trim(),
+      body: document.getElementById('nBody').value.trim(),
+      visibility: document.getElementById('nVis').value,
+      pinned: document.getElementById('nPin').value === 'true',
+      author_id: me.id, author_email: me.email || ''
+    });
+    if (error) throw error;
+    toast('通知已发布，立即生效');
+    ev.target.reset();
+    loadMine();
+  } catch (e) {
+    toast('发布失败：' + (e.message || e), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '发布通知';
+  }
+});
+
+// 上传照片
+document.getElementById('formPhoto').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const btn = document.getElementById('pSubmit');
+  const files = Array.from(document.getElementById('pFiles').files || []);
+  if (!files.length) return toast('请先选择照片', 'err');
+  const oversized = files.find(f => f.size > 50 * 1024 * 1024);
+  if (oversized) return toast(`「${oversized.name}」超过 50MB，请压缩后再上传`, 'err');
+
+  const activity = document.getElementById('pActivity').value.trim();
+  const date = document.getElementById('pDate').value || null;
+  const vis = document.getElementById('pVis').value;
+  const caption = document.getElementById('pCaption').value.trim();
+
+  btn.disabled = true; btn.textContent = '上传中…';
+  let done = 0;
+  try {
+    for (const file of files) {
+      const path = `photos/${activity}/${Date.now()}-${safeName(file.name)}`;
+      const bucket = bucketOfVis(vis);
+      const { error: upErr } = await sb.storage.from(bucket).upload(path, file, { cacheControl: '3600', upsert: false });
+      if (upErr) throw upErr;
+      const { error: insErr } = await sb.from('photos').insert({
+        activity, caption, event_date: date, visibility: vis,
+        file_path: path, file_name: file.name, uploader_id: me.id, uploader_email: me.email || ''
+      });
+      if (insErr) throw insErr;
+      done += 1;
+      setProgress('pProgress', Math.round(done / files.length * 100));
+      btn.textContent = `上传中…（${done}/${files.length}）`;
+    }
+    toast(`已上传 ${done} 张照片`);
+    ev.target.reset();
+    document.getElementById('pFileNames').textContent = '尚未选择照片';
+    loadMine();
+  } catch (e) {
+    toast('上传中断：' + (e.message || e) + (done ? `（已完成 ${done} 张）` : ''), 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '上传照片';
+    setTimeout(() => setProgress('pProgress', null), 600);
+  }
+});
+
+// 我的上传
+async function loadMine() {
+  const box = document.getElementById('myList');
+  try {
+    const [{ data: mats }, { data: notices }, { data: photos }] = await Promise.all([
+      sb.from('materials').select('*').eq('uploader_id', me.id).order('created_at', { ascending: false }).limit(20),
+      sb.from('notices').select('*').eq('author_id', me.id).order('created_at', { ascending: false }).limit(10),
+      sb.from('photos').select('*').eq('uploader_id', me.id).order('created_at', { ascending: false }).limit(20)
+    ]);
+    const rows = [];
+    (mats || []).forEach(m => rows.push({ kind: '资料', id: m.id, table: 'materials', title: m.title, meta: `${m.academic_year} · ${m.department} · ${m.category}`, vis: m.visibility, size: m.file_size, path: m.file_path, bucket: bucketOfVis(m.visibility), date: m.created_at }));
+    (notices || []).forEach(n => rows.push({ kind: '通知', id: n.id, table: 'notices', title: n.title, meta: n.pinned ? '置顶' : '', vis: n.visibility, date: n.created_at }));
+    (photos || []).forEach(p => rows.push({ kind: '照片', id: p.id, table: 'photos', title: p.activity + (p.caption ? ' · ' + p.caption : ''), meta: p.event_date || '', vis: p.visibility, size: null, path: p.file_path, bucket: bucketOfVis(p.visibility), date: p.created_at }));
+
+    if (!rows.length) {
+      box.innerHTML = '<div class="empty"><h3>还没有上传记录</h3><p>用上面的表单上传第一份资料、通知或照片。</p></div>';
+      return;
+    }
+    box.innerHTML = `<div class="material-list">${rows.map(r => `
+      <div class="material-row">
+        <div class="mat-icon">${r.kind === '资料' ? 'FILE' : r.kind === '通知' ? 'NOTE' : 'IMG'}</div>
+        <div class="mat-main">
+          <div class="mat-title">${esc(r.title)}</div>
+          <div class="mat-meta">
+            <span class="badge">${r.kind}</span>
+            ${r.meta ? `<span class="badge">${esc(r.meta)}</span>` : ''}
+            <span class="badge ${r.vis}">${r.vis === 'public' ? '公开' : '内部'}</span>
+            <span>${fmtDate(r.date)}</span>
+          </div>
+        </div>
+        <div class="mat-actions">
+          <button class="mini-btn danger" data-del="${r.table}:${r.id}">删除</button>
+        </div>
+      </div>`).join('')}</div>`;
+
+    box.querySelectorAll('button[data-del]').forEach(b => {
+      b.addEventListener('click', async () => {
+        const [table, id] = b.dataset.del.split(':');
+        if (!confirm('确定删除这条内容？删除后不可恢复。')) return;
+        try {
+          const item = rows.find(r => r.table === table && String(r.id) === id);
+          const { error } = await sb.from(table).delete().eq('id', id);
+          if (error) throw error;
+          if (item && item.path) {
+            await sb.storage.from(item.bucket).remove([item.path]).catch(() => {});
+          }
+          toast('已删除');
+          loadMine();
+        } catch (e) {
+          toast('删除失败：' + (e.message || e), 'err');
+        }
+      });
+    });
+  } catch (e) {
+    box.innerHTML = `<div class="empty"><h3>读取失败</h3><p>${esc(e.message || e)}</p></div>`;
+  }
+}
+
+(async () => {
+  me = await getProfile(true);
+  const gate = document.getElementById('gateBox');
+  if (!me) {
+    gate.style.display = 'block';
+    gate.innerHTML = '<div class="empty"><h3>请先登录</h3><p>工作台只对工商自委成员开放。</p><a class="btn btn-primary" href="login.html" style="margin-top:16px;">去登录</a></div>';
+    return;
+  }
+  if (me.status === 'pending') {
+    gate.style.display = 'block';
+    gate.innerHTML = '<div class="empty"><h3>账号待审核</h3><p>管理员通过审核后，你就能在这里上传资料、发布通知、上传照片。审核期间可先浏览公开内容。</p></div>';
+    return;
+  }
+  if (me.status === 'rejected') {
+    gate.style.display = 'block';
+    gate.innerHTML = '<div class="empty"><h3>账号未通过审核</h3><p>如有疑问请联系办公室管理员。</p></div>';
+    return;
+  }
+  document.getElementById('studioMain').style.display = 'block';
+  document.getElementById('mYear').value = currentAcademicYear();
+  loadMine();
+})();
+</script>
+</body>
+</html>

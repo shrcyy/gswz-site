@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理后台 · 工商自委</title>
+<meta name="description" content="工商自委管理后台：成员审核、内容管理。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='8'%20fill='%2316324f'/%3E%3Ctext%20x='32'%20y='46'%20font-size='30'%20text-anchor='middle'%20font-family='serif'%20fill='%23d8b869'%3E%E8%87%AA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">自</span>
+      <span class="brand-text">
+        <strong>工商自委</strong>
+        <small>辽宁工程技术大学 · 工商管理学院</small>
+      </span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="archive.html">资料库</a>
+      <a href="news.html">通知公告</a>
+      <a href="gallery.html">活动照片</a>
+      <a href="manual.html">履职手册</a>
+    </nav>
+    <div class="header-actions" id="authArea"></div>
+  </div>
+</header>
+
+<main>
+  <section class="admin-wrap">
+    <div class="container">
+      <div class="section-head" style="margin-bottom:26px;">
+        <div class="eyebrow">管理后台</div>
+        <h2>成员审核与内容管理</h2>
+        <p>上传即生效，这里负责账号准入与内容清理。</p>
+      </div>
+
+      <div id="gateBox" style="display:none;"></div>
+
+      <div id="adminMain" style="display:none;">
+        <div class="grid-4" style="margin-bottom:30px;">
+          <div class="card"><h3 style="font-size:22px;" id="statMembers">—</h3><p class="desc">成员账号</p></div>
+          <div class="card"><h3 style="font-size:22px;" id="statPending">—</h3><p class="desc">待审核</p></div>
+          <div class="card"><h3 style="font-size:22px;" id="statMaterials">—</h3><p class="desc">已归档资料</p></div>
+          <div class="card"><h3 style="font-size:22px;" id="statPhotos">—</h3><p class="desc">活动照片</p></div>
+        </div>
+
+        <div class="section-head with-line" style="margin-bottom:14px;">
+          <h2 style="font-size:20px;">成员审核</h2>
+          <a class="more" href="#" id="refreshMembers">刷新 →</a>
+        </div>
+        <div class="table-wrap" style="margin-bottom:44px;">
+          <table>
+            <thead>
+              <tr><th>姓名</th><th>邮箱</th><th>部门</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+            </thead>
+            <tbody id="memberRows"><tr><td colspan="7">加载中…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="section-head with-line" style="margin-bottom:14px;">
+          <h2 style="font-size:20px;">内容管理</h2>
+          <a class="more" href="#" id="refreshContent">刷新 →</a>
+        </div>
+        <div class="studio-tabs" style="margin-bottom:16px;">
+          <button type="button" data-ct="materials" class="active">资料</button>
+          <button type="button" data-ct="notices">通知</button>
+          <button type="button" data-ct="photos">照片</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="contentHead"></thead>
+            <tbody id="contentRows"><tr><td colspan="6">加载中…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom" style="border-top:none;margin-top:0;padding-top:0;">
+      <span>© 2026 辽宁工程技术大学工商管理学院大学生自律委员会 · 管理后台</span>
+      <span><a href="index.html" style="color:rgba(255,255,255,.5)">返回首页</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+let me = null;
+let currentContent = 'materials';
+let cache = { profiles: [], materials: [], notices: [], photos: [] };
+
+function statusBadge(s) {
+  if (s === 'approved') return '<span class="badge ok">已通过</span>';
+  if (s === 'pending') return '<span class="badge pending">待审核</span>';
+  return '<span class="badge admin">未通过</span>';
+}
+
+async function loadProfiles() {
+  const { data, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  cache.profiles = data || [];
+  document.getElementById('memberRows').innerHTML = cache.profiles.map(p => `
+    <tr>
+      <td>${esc(p.display_name || '')}</td>
+      <td style="color:var(--ink-3);">${esc(p.email || '')}</td>
+      <td>${esc(p.department || '')}</td>
+      <td>${p.role === 'admin' ? '<span class="badge admin">管理员</span>' : '成员'}</td>
+      <td>${statusBadge(p.status)}</td>
+      <td style="color:var(--ink-3);">${fmtDate(p.created_at)}</td>
+      <td><div class="actions">
+        ${p.status === 'pending' ? `<button class="mini-btn" data-act="approve" data-id="${p.id}">通过</button><button class="mini-btn danger" data-act="reject" data-id="${p.id}">拒绝</button>` : ''}
+        ${p.role !== 'admin' && p.status === 'approved' ? `<button class="mini-btn" data-act="promote" data-id="${p.id}">设为管理员</button>` : ''}
+        ${p.role === 'admin' && p.id !== me.id ? `<button class="mini-btn danger" data-act="demote" data-id="${p.id}">取消管理员</button>` : ''}
+      </div></td>
+    </tr>`).join('') || '<tr><td colspan="7">暂无成员</td></tr>';
+  bindMemberActions();
+  document.getElementById('statMembers').textContent = cache.profiles.filter(p => p.status === 'approved').length;
+  document.getElementById('statPending').textContent = cache.profiles.filter(p => p.status === 'pending').length;
+}
+
+function bindMemberActions() {
+  document.querySelectorAll('#memberRows button[data-act]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id, act = btn.dataset.act;
+      const patch = act === 'approve' ? { status: 'approved' }
+        : act === 'reject' ? { status: 'rejected' }
+        : act === 'promote' ? { role: 'admin' }
+        : { role: 'member' };
+      try {
+        const { error } = await sb.from('profiles').update(patch).eq('id', id);
+        if (error) throw error;
+        toast('已更新');
+        loadProfiles();
+      } catch (e) {
+        toast('操作失败：' + (e.message || e), 'err');
+      }
+    });
+  });
+}
+
+async function loadContent() {
+  const t = currentContent;
+  let data = [];
+  try {
+    if (t === 'materials') {
+      const r = await sb.from('materials').select('*').order('created_at', { ascending: false }).limit(200);
+      if (r.error) throw r.error; data = r.data || [];
+      document.getElementById('contentHead').innerHTML =
+        '<tr><th>标题</th><th>学年</th><th>部门</th><th>类型</th><th>可见性</th><th>操作</th></tr>';
+      document.getElementById('contentRows').innerHTML = data.map(m => `
+        <tr>
+          <td>${esc(m.title)}</td><td>${esc(m.academic_year)}</td><td>${esc(m.department)}</td>
+          <td>${esc(m.category)}</td>
+          <td><span class="badge ${m.visibility}">${m.visibility === 'public' ? '公开' : '内部'}</span></td>
+          <td><div class="actions"><button class="mini-btn danger" data-del="materials:${m.id}">删除</button></div></td>
+        </tr>`).join('') || '<tr><td colspan="6">暂无资料</td></tr>';
+      cache.materials = data;
+    } else if (t === 'notices') {
+      const r = await sb.from('notices').select('*').order('created_at', { ascending: false }).limit(200);
+      if (r.error) throw r.error; data = r.data || [];
+      document.getElementById('contentHead').innerHTML =
+        '<tr><th>标题</th><th>可见性</th><th>置顶</th><th>发布人</th><th>时间</th><th>操作</th></tr>';
+      document.getElementById('contentRows').innerHTML = data.map(n => `
+        <tr>
+          <td>${esc(n.title)}</td>
+          <td><span class="badge ${n.visibility}">${n.visibility === 'public' ? '公开' : '内部'}</span></td>
+          <td>${n.pinned ? '是' : '否'}</td>
+          <td style="color:var(--ink-3);">${esc((n.author_email || '').split('@')[0])}</td>
+          <td style="color:var(--ink-3);">${fmtDate(n.created_at)}</td>
+          <td><div class="actions"><button class="mini-btn danger" data-del="notices:${n.id}">删除</button></div></td>
+        </tr>`).join('') || '<tr><td colspan="6">暂无通知</td></tr>';
+      cache.notices = data;
+    } else {
+      const r = await sb.from('photos').select('*').order('created_at', { ascending: false }).limit(200);
+      if (r.error) throw r.error; data = r.data || [];
+      document.getElementById('contentHead').innerHTML =
+        '<tr><th>活动</th><th>说明</th><th>日期</th><th>可见性</th><th>上传时间</th><th>操作</th></tr>';
+      document.getElementById('contentRows').innerHTML = data.map(p => `
+        <tr>
+          <td>${esc(p.activity)}</td><td>${esc(p.caption || '')}</td>
+          <td>${p.event_date || ''}</td>
+          <td><span class="badge ${p.visibility}">${p.visibility === 'public' ? '公开' : '内部'}</span></td>
+          <td style="color:var(--ink-3);">${fmtDate(p.created_at)}</td>
+          <td><div class="actions"><button class="mini-btn danger" data-del="photos:${p.id}">删除</button></div></td>
+        </tr>`).join('') || '<tr><td colspan="6">暂无照片</td></tr>';
+      cache.photos = data;
+    }
+    document.getElementById('statMaterials').textContent = cache.materials.length || '—';
+    document.getElementById('statPhotos').textContent = cache.photos.length || '—';
+    bindContentDelete();
+  } catch (e) {
+    document.getElementById('contentRows').innerHTML = `<tr><td colspan="6">读取失败：${esc(e.message || e)}</td></tr>`;
+  }
+}
+
+function bindContentDelete() {
+  document.querySelectorAll('#contentRows button[data-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('确定删除？删除后不可恢复。')) return;
+      const [table, id] = btn.dataset.del.split(':');
+      try {
+        const { error } = await sb.from(table).delete().eq('id', id);
+        if (error) throw error;
+        // 同步删除存储文件
+        const item = (cache[table] || []).find(x => String(x.id) === id);
+        if (item && item.file_path) {
+          const bucket = item.visibility === 'public' ? SITE.buckets.public : SITE.buckets.internal;
+          await sb.storage.from(bucket).remove([item.file_path]).catch(() => {});
+        }
+        toast('已删除');
+        loadContent();
+      } catch (e) {
+        toast('删除失败：' + (e.message || e), 'err');
+      }
+    });
+  });
+}
+
+document.querySelectorAll('.studio-tabs button[data-ct]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.studio-tabs button[data-ct]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentContent = b.dataset.ct;
+    loadContent();
+  });
+});
+document.getElementById('refreshMembers').addEventListener('click', e => { e.preventDefault(); loadProfiles(); });
+document.getElementById('refreshContent').addEventListener('click', e => { e.preventDefault(); loadContent(); });
+
+(async () => {
+  me = await getProfile(true);
+  const gate = document.getElementById('gateBox');
+  if (!me) {
+    gate.style.display = 'block';
+    gate.innerHTML = '<div class="empty"><h3>请先登录</h3><p>管理后台仅管理员可访问。</p><a class="btn btn-primary" href="login.html" style="margin-top:16px;">去登录</a></div>';
+    return;
+  }
+  if (!isAdmin(me)) {
+    gate.style.display = 'block';
+    gate.innerHTML = '<div class="empty"><h3>无访问权限</h3><p>当前账号不是管理员。如需管理权限，请联系主席团或办公室。</p></div>';
+    return;
+  }
+  document.getElementById('adminMain').style.display = 'block';
+  try { await loadProfiles(); } catch (e) { toast('成员列表读取失败：' + (e.message || e), 'err'); }
+  await loadContent();
+})();
+</script>
+</body>
+</html>
