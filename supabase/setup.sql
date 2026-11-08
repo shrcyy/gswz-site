@@ -271,3 +271,28 @@ create index if not exists idx_materials_cat on public.materials (category);
 create index if not exists idx_materials_vis on public.materials (visibility);
 create index if not exists idx_notices_created on public.notices (created_at desc);
 create index if not exists idx_photos_created on public.photos (created_at desc);
+
+-- ═══════════════════════════════════════════
+-- 15. 管理员移除成员（连同其登录账号一起删除）
+--     仅管理员可调用；不能移除自己。
+--     该成员上传的资料保留（uploader_id 置空）。
+-- ═══════════════════════════════════════════
+create or replace function public.admin_remove_member(target uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception '只有管理员可以移除成员';
+  end if;
+  if target = auth.uid() then
+    raise exception '不能移除自己的账号';
+  end if;
+  delete from auth.users where id = target;
+end;
+$$;
+
+revoke all on function public.admin_remove_member(uuid) from public;
+grant execute on function public.admin_remove_member(uuid) to authenticated;

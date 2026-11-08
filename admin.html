@@ -121,6 +121,7 @@ async function loadProfiles() {
         ${p.status === 'pending' ? `<button class="mini-btn" data-act="approve" data-id="${p.id}">通过</button><button class="mini-btn danger" data-act="reject" data-id="${p.id}">拒绝</button>` : ''}
         ${p.role !== 'admin' && p.status === 'approved' ? `<button class="mini-btn" data-act="promote" data-id="${p.id}">设为管理员</button>` : ''}
         ${p.role === 'admin' && p.id !== me.id ? `<button class="mini-btn danger" data-act="demote" data-id="${p.id}">取消管理员</button>` : ''}
+        ${p.id !== me.id ? `<button class="mini-btn danger" data-act="remove" data-id="${p.id}">移除</button>` : ''}
       </div></td>
     </tr>`).join('') || '<tr><td colspan="7">暂无成员</td></tr>';
   bindMemberActions();
@@ -132,6 +133,20 @@ function bindMemberActions() {
   document.querySelectorAll('#memberRows button[data-act]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id, act = btn.dataset.act;
+      if (act === 'remove') {
+        const target = cache.profiles.find(x => String(x.id) === id);
+        const name = target ? (target.display_name || target.email || '该成员') : '该成员';
+        if (!confirm(`确定将「${name}」移出组织？\n\n会同时删除其登录账号，之后该账号无法再登录；该成员上传过的资料会保留。`)) return;
+        try {
+          const { error } = await sb.rpc('admin_remove_member', { target: id });
+          if (error) throw error;
+          toast('已移除成员');
+          loadProfiles();
+        } catch (e) {
+          toast('移除失败：' + (e.message || e), 'err');
+        }
+        return;
+      }
       const patch = act === 'approve' ? { status: 'approved' }
         : act === 'reject' ? { status: 'rejected' }
         : act === 'promote' ? { role: 'admin' }

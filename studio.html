@@ -154,7 +154,7 @@
               <div class="field span-2">
                 <label>选择照片 *（可多选）</label>
                 <label class="file-drop" for="pFiles">
-                  <div style="font-size:14px;color:var(--ink-2);">点击选择照片（JPG / PNG / WEBP，单张不超过 50MB）</div>
+                  <div style="font-size:14px;color:var(--ink-2);">点击选择照片（JPG / PNG / WEBP，上传前自动压到长边 1600px，一张约 200–400KB）</div>
                   <div class="fname" id="pFileNames">尚未选择照片</div>
                   <input type="file" id="pFiles" accept="image/*" multiple required>
                 </label>
@@ -197,6 +197,29 @@ function safeName(name) {
     .replace(/[\\/:*?"<>|]+/g, '_')
     .replace(/\s+/g, '_')
     .slice(-120);
+}
+
+// 上传前压缩照片：长边 1600px、JPEG 质量 0.82，避免 1GB 空间被原图吃光
+async function compressImage(file, maxSide = 1600, quality = 0.82) {
+  if (!file.type.startsWith('image/') || file.size < 300 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    let w = bitmap.width, h = bitmap.height;
+    if (Math.max(w, h) > maxSide) {
+      const s = maxSide / Math.max(w, h);
+      w = Math.round(w * s); h = Math.round(h * s);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    if (bitmap.close) bitmap.close();
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+    if (!blob || blob.size >= file.size) return file;
+    const base = file.name.replace(/\.[^.]+$/, '');
+    return new File([blob], base + '.jpg', { type: 'image/jpeg' });
+  } catch (e) {
+    return file;
+  }
 }
 
 function bucketOfVis(vis) {
@@ -319,9 +342,6 @@ document.getElementById('formPhoto').addEventListener('submit', async (ev) => {
   const btn = document.getElementById('pSubmit');
   const files = Array.from(document.getElementById('pFiles').files || []);
   if (!files.length) return toast('请先选择照片', 'err');
-  const oversized = files.find(f => f.size > 50 * 1024 * 1024);
-  if (oversized) return toast(`「${oversized.name}」超过 50MB，请压缩后再上传`, 'err');
-
   const activity = document.getElementById('pActivity').value.trim();
   const date = document.getElementById('pDate').value || null;
   const vis = document.getElementById('pVis').value;
@@ -330,7 +350,9 @@ document.getElementById('formPhoto').addEventListener('submit', async (ev) => {
   btn.disabled = true; btn.textContent = '上传中…';
   let done = 0;
   try {
-    for (const file of files) {
+    for (const rawFile of files) {
+      const file = await compressImage(rawFile);
+      if (file.size > 50 * 1024 * 1024) throw new Error(`「${file.name}」压缩后仍超过 50MB，请先在本地处理`);
       const path = `photos/${activity}/${Date.now()}-${safeName(file.name)}`;
       const bucket = bucketOfVis(vis);
       const { error: upErr } = await sb.storage.from(bucket).upload(path, file, { cacheControl: '3600', upsert: false });
